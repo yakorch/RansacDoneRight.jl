@@ -1,0 +1,13 @@
+name = "RansacDoneRight"
+uuid = "4745c7e2-2598-44b7-9a7b-47b5a891e6fd"
+authors = ["yakorch <korchyar19@gmail.com>", "KushnirDmytro <kushnir.dmytro.93@gmail.com>", "prittjam <jbpritts@gmail.com> and contributors"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
