@@ -18,7 +18,7 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
     truth_min_set::MVector{4,Correspondence{Float64}} = @view truth_minset_unrealized_noise[1:4]
 
     uncertain_H = compute_uncertain_homography(truth_min_set)
-    uncertain_residuals = compute_uncertain_residuals(uncertain_H, @view truth_minset_unrealized_noise[5:end])
+    uncertain_residuals = compute_uncertain_reprojection_residuals(uncertain_H, @view truth_minset_unrealized_noise[5:end])
     propagated_covs = [el.covariance_matrix for el in uncertain_residuals]
 
     # -4 because we don't compute the residuals on the minimal set
@@ -37,7 +37,7 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
         covariances::Vector{Matrix{Float64}} = thread_covariances[Threads.threadid()]
 
         for j in 1:num_residuals
-            residual = compute_residual(H, lu_H, noised_correspondences[j+4])
+            residual = compute_reprojection_residual(H, lu_H, noised_correspondences[j+4])
 
             covariances[j] += residual * residual'
 

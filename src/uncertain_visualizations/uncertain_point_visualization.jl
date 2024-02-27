@@ -1,5 +1,3 @@
-const _χ²_2_DoF = Chisq(2)
-
 
 """
     plot_confidence_region(UncertainPoint{Float64}, 0.95)

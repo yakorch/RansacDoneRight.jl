@@ -76,7 +76,7 @@ noised_corresps = RDR.add_noise_to_correspondences(corresps, noise_cov_m, noise_
 est_H, est_Σₕ = RDR.get_H_and_covariance(@view noised_corresps[1:4])
 
 # ╔═╡ 50028a80-0d99-4416-8adb-77d68af0655c
-some_closure() = RDR.compute_uncertain_residuals(est_H, est_Σₕ, @view noised_corresps[5:end])
+some_closure() = RDR.compute_uncertain_reprojection_residuals(est_H, est_Σₕ, @view noised_corresps[5:end])
 
 # ╔═╡ ac5cf885-aa3c-4ecc-8c1c-240fd67fb9a3
 md"""

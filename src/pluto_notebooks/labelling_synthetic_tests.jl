@@ -90,7 +90,7 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 
 	inlier_indices = (n_outliers+1):n_corresps
 
-	for i in 1:n_runs
+	for _ in 1:n_runs
 		certain_minimal_set = RDR.generate_random_minimal_set(image_bounds)
 		certain_H = RDR.compute_homography(certain_minimal_set)
 
