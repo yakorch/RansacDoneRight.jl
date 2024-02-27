@@ -23,7 +23,7 @@ end
         @test H ≈ uncertain_H.H
 
         lu_H = lu(H)
-        residuals = compute_residual.(Ref(H), Ref(lu_H), min_set)
+        residuals = compute_reprojection_residual.(Ref(H), Ref(lu_H), min_set)
         for residual in residuals
             @test isapprox(sum(abs.(residual)), 0.0, atol=1e-6)
         end

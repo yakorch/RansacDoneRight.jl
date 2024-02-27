@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.40
 
 using Markdown
 using InteractiveUtils
@@ -104,9 +104,9 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 
 		minimal_set::MVector{4, RDR.Correspondence{Float64}} = @view noised_corresps[minimal_set_indices]
 
-		collinearity_checks_passed = RDR.test_minimal_set_fully(minimal_set, T₁, T₂, true)
+		minimal_set_is_viable = RDR.verify_no_points_are_collinear(minimal_set, T₁, T₂, true)
 
-		if !collinearity_checks_passed
+		if !minimal_set_is_viable
 			continue
 		end
 
@@ -114,9 +114,9 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 		RDR.swap_points_in_correspondence!.(minimal_set)
 		backward_uncertain_homography = RDR.compute_uncertain_homography(minimal_set)
 
-		uncertain_residuals = RDR.compute_uncertain_residuals(uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		uncertain_residuals = RDR.compute_uncertain_reprojection_residuals(uncertain_homography, @view noised_corresps[non_minimal_set_indices])
 		RDR.swap_points_in_correspondence!.(@view noised_corresps[non_minimal_set_indices])
-		backward_uncertain_residuals = RDR.compute_uncertain_residuals(backward_uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		backward_uncertain_residuals = RDR.compute_uncertain_reprojection_residuals(backward_uncertain_homography, @view noised_corresps[non_minimal_set_indices])
 
 		statistics = RDR.compute_inlier_test_statistic.(uncertain_residuals)
 		backward_statistics = RDR.compute_inlier_test_statistic.(backward_uncertain_residuals)
@@ -144,7 +144,7 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 		push!(homography_traces, abs(det(RDR.normalize_onto_unit_sphere(uncertain_homography).Σₕ))^(1/9))
 
 	end
-	return confusion_matrix_labelling, inlier_statistics, homography_traces
+	return confusion_matrix_labelling, inlier_statistics, avg_residual_variance
 end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
@@ -189,7 +189,7 @@ $(cor(avg_trace_cov_m_of_residuals, homography_traces))
 # ╟─b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
 # ╟─17e83446-d245-11ee-376e-2d07bba971c4
 # ╟─b48ceec7-c617-4fc0-8bca-92929faf6c50
-# ╠═169da2fc-586b-4433-abe4-c80781175dbb
+# ╟─169da2fc-586b-4433-abe4-c80781175dbb
 # ╠═26827270-dd23-46f5-a72e-3462d36f65ae
 # ╟─dfb98830-98d4-4876-bdaf-a25fa43bebd4
 # ╠═3dcf98a5-d540-47fa-9116-738221fbfb08
