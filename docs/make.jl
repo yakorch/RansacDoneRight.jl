@@ -5,7 +5,7 @@ DocMeta.setdocmeta!(RansacDoneRight, :DocTestSetup, :(using RansacDoneRight); re
 
 makedocs(;
     modules=[RansacDoneRight],
-    authors="yakorch <korchyar19@gmail.com>, KushnirDmytro <kushnir.dmytro.93@gmail.com>, prittjam <jbpritts@gmail.com> and contributors",
+    authors="yakorch <korchyar19@gmail.com>, KushnirDmytro <kushnir.dmytro.93@gmail.com>, prittjam <jbpritts@gmail.com>",
     sitename="RansacDoneRight.jl",
     format=Documenter.HTML(;
         canonical="https://yakorch.github.io/RansacDoneRight.jl",
