@@ -55,7 +55,7 @@ Performs synthetic experiments to verify the viability of probabilistic approach
 
 - `T₁` is the threshold  statistic for points identity test. Set `0.0` if no check for identity is needed.
 - `T₂` is the threshold statistic for point-line incidence test. Set `0.0` if no check for incidence is needed.
-- `T₃` is the threshold statistic for consensus set labelling. See `RDR.get_inlier_mask` for more details.
+- `T₃` is the threshold statistic for consensus set labelling. See `RDR.compute_inlier_mask` for more details.
 
 - `outlier_ratio` is the ratio of outliers to be present in all correspondences. For example, if `0.3` is passed, `30%` of correspondences will be corrupted.
 
@@ -84,10 +84,6 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 	apt_noise_m₁ = 1. * noise_m₁
 	apt_noise_m₂ = 1. * noise_m₂
 
-	inlier_statistics = Float64[]
-	avg_residual_variance = Float64[]
-	homography_traces = Float64[]
-
 	inlier_indices = (n_outliers+1):n_corresps
 
 	for _ in 1:n_runs
@@ -112,46 +108,43 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 
 		uncertain_homography = RDR.compute_uncertain_homography(minimal_set)
 		RDR.swap_points_in_correspondence!.(minimal_set)
-		backward_uncertain_homography = RDR.compute_uncertain_homography(minimal_set)
+		uncertain_homography_inv = RDR.compute_uncertain_homography(minimal_set)
 
-		uncertain_residuals = RDR.compute_uncertain_reprojection_residuals(uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		reprojection_residuals = RDR.compute_uncertain_reprojection_residuals(uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		forward_residuals = RDR.compute_uncertain_forward_residuals(uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		
 		RDR.swap_points_in_correspondence!.(@view noised_corresps[non_minimal_set_indices])
-		backward_uncertain_residuals = RDR.compute_uncertain_reprojection_residuals(backward_uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		backward_residuals = RDR.compute_uncertain_forward_residuals(uncertain_homography_inv, @view noised_corresps[non_minimal_set_indices])
 
-		statistics = RDR.compute_inlier_test_statistic.(uncertain_residuals)
-		backward_statistics = RDR.compute_inlier_test_statistic.(backward_uncertain_residuals)
+		forward_statistics = RDR.compute_inlier_test_statistic.(forward_residuals)
+		backward_statistics = RDR.compute_inlier_test_statistic.(backward_residuals)
 		
-		predicted_inlier_mask = @. (statistics < T₃) # && (backward_statistics < T₃)
+		predicted_inlier_mask_forward = (forward_statistics .< T₃)
+		predicted_inlier_mask_RDR = @. predicted_inlier_mask_forward && (backward_statistics < T₃)
 
+		predicted_inlier_mask_reprojection = RDR.compute_inlier_mask(reprojection_residuals, T₃)
+		
 		for j in 1:(n_corresps-4)
-			confusion_matrix_labelling[(j > n_outliers) + 1, predicted_inlier_mask[j] + 1] += 1
+			confusion_matrix_labelling[(j > n_outliers) + 1, predicted_inlier_mask_RDR[j] + 1] += 1
 		end
-
-		push!(inlier_statistics, sum(@view statistics[(n_outliers+1):(n_corresps-4)]) / (n_corresps - n_outliers - 4) + sum(@view backward_statistics[(n_outliers+1):(n_corresps-4)]) / (n_corresps - n_outliers - 4))
-
-		avg_var = 0
-		for j in (n_outliers+1):(n_corresps-4)
-			avg_var += abs(det(uncertain_residuals[j].covariance_matrix[1:2, 1:2])) ^ 0.5
-			avg_var += abs(det(backward_uncertain_residuals[j].covariance_matrix[1:2, 1:2])) ^ 0.5
-
-			# push!(avg_residual_variance, avg_var)
-			# push!(inlier_statistics, statistics[j])
-		end
-
-		avg_var /= 2 * (n_corresps - n_outliers - 4)
-		push!(avg_residual_variance, avg_var)
-		
-		push!(homography_traces, abs(det(RDR.normalize_onto_unit_sphere(uncertain_homography).Σₕ))^(1/9))
-
 	end
-	return confusion_matrix_labelling, inlier_statistics, avg_residual_variance
+	return confusion_matrix_labelling
 end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
 begin
-	total_runs = 5_000
+	total_runs = 3_000
 
-	conf_m_labelling, avg_trace_cov_m_of_residuals, homography_traces = synthetic_labelling_test(1. * I(2), 1. * I(2), 9.21, 6.63, 9.21, 0.3, 1000, total_runs)
+	point_identity_alpha = 0.01
+	point_identity_st = quantile(RDR._χ²_2_DoF, 1 - point_identity_alpha)
+
+	point_line_incidence_alpha = 0.01
+	point_line_incidence_st = quantile(RDR._χ²_1_DoF, 1 - point_line_incidence_alpha)
+
+	labelling_alpha = 0.01
+	labelling_st = quantile(RDR._χ²_2_DoF, 1 - labelling_alpha)
+
+	conf_m_labelling = synthetic_labelling_test(1. * I(2), 1. * I(2), point_identity_st, point_line_incidence_st, labelling_st, 0.3, 1000, total_runs)
 
 	conf_m_labelling_percents = conf_m_labelling
 	for j in 1:2
@@ -165,32 +158,21 @@ end
 
 # ╔═╡ dfb98830-98d4-4876-bdaf-a25fa43bebd4
 md"""
-#### Confusion matrix for labelling.
-- 1st row: the correspondence was actually an outlier
-- 2nd row: the correspondence was actually an inlier
+#### Consensus Set Labelling Analysis.
 
-
-- 1st column: correspondence predicted to be an outlier
-- 2nd column: correspondence predicted to be an inlier
-
-"""
-
-# ╔═╡ 3dcf98a5-d540-47fa-9116-738221fbfb08
-conf_m_labelling_percents
-
-# ╔═╡ ac093750-2b71-447b-9e6a-804ae350c2eb
-md"""
-#### Correlation between the consensus test statistic and avg. trace of residuals' cov. matrix:
-
-$(cor(avg_trace_cov_m_of_residuals, homography_traces))
+Specified significance level (`α`) for:
+1. Points Identity Test: **$(point_identity_alpha)**
+2. Point-Line Incidence Test: **$(point_line_incidence_alpha)**
+3. Consensus set labelling: **$(labelling_alpha)**
+_______________________________________________________________________________________________________________________________________________
+- Empirical significance level (`α`): **$(round(conf_m_labelling_percents[2, 1]; digits=5))** %
+- Empirical power of the test (`1-β`): **$(round(conf_m_labelling_percents[1, 1]; digits=5))** %
 """
 
 # ╔═╡ Cell order:
 # ╟─b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
 # ╟─17e83446-d245-11ee-376e-2d07bba971c4
 # ╟─b48ceec7-c617-4fc0-8bca-92929faf6c50
-# ╟─169da2fc-586b-4433-abe4-c80781175dbb
+# ╠═169da2fc-586b-4433-abe4-c80781175dbb
 # ╠═26827270-dd23-46f5-a72e-3462d36f65ae
 # ╟─dfb98830-98d4-4876-bdaf-a25fa43bebd4
-# ╠═3dcf98a5-d540-47fa-9116-738221fbfb08
-# ╟─ac093750-2b71-447b-9e6a-804ae350c2eb

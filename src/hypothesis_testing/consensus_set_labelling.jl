@@ -31,6 +31,6 @@ mask contains `true` where H₀ wasn't rejected.
 
 For **Reprojection**/**Forward** residual, `T` is the test statistic corresponding to the quantile of the `χ`-squared distribution with **`4`**/**`2`** deg. of freedom. **`9.49`**/**`5.99`** corresponds to a confidence level of `0.95`.
 """
-function compute_inlier_mask(uncertain_residuals::V, T::Float64) where {V<:AbstractVector{UncertainResidual{Float64}}}
+function compute_inlier_mask(uncertain_residuals::V, T::Float64) where {V<:AbstractVector{<:UncertainResidual{Float64}}}
     @. compute_inlier_test_statistic(uncertain_residuals) < T
 end
