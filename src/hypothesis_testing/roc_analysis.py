@@ -10,12 +10,18 @@ def plot_roc_curves(classifiers: list[np.ndarray], labels: list[str], ground_tru
     - `labels` and `classfiers` should be in the same order
     - The higher value each classifier returned, the more likely `H_0` is to be rejected.
     - `ground_truth` must consist of zeros and ones only. `1` means `H_0` is true, while `0` means `H_1` is true.
+
+    `lists_thresholds` is the list of thresholds for each classifier. Returned for further sanity check.
     """
     colors = ['darkorange', 'blue', 'green', 'red', 'purple', 'black']
+    assert len(classifiers) <= len(colors), f"Number of classifiers should be at most {len(colors)}"
+
     plt.figure()
 
+    lists_thresholds = []
     for (cdf_values, label, color) in zip(classifiers, labels, colors):
         fpr, tpr, thresholds = roc_curve(ground_truth, cdf_values, pos_label=0)
+        lists_thresholds.append(thresholds)
         roc_auc1 = auc(fpr, tpr)
         plt.plot(fpr, tpr, color=color, lw=2, label=f'{label} (area = %0.6f)' % roc_auc1)
 
@@ -30,8 +36,11 @@ def plot_roc_curves(classifiers: list[np.ndarray], labels: list[str], ground_tru
     plt.legend(loc="lower right")
 
     if safe_path is not None:
-        plt.savefig(safe_path)
-    plt.show()
+        plt.savefig(safe_path, format='pdf')
+    else:
+        plt.show()
+    return lists_thresholds
+    
 
 
 def test():

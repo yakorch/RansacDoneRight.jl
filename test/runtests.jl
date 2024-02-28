@@ -58,6 +58,7 @@ end
 
     @views for (repr_r_orig, repr_r_back, forw_r_back) in zip(uncertain_reprojection_residuals, uncertain_reprojection_residuals_backward, uncertain_forward_residuals_backward)
         @test repr_r_orig.residual[1:2] ≈ repr_r_back.residual[3:4]
+        @test repr_r_orig.residual[3:4] ≈ repr_r_back.residual[1:2]
 
         @test repr_r_orig.covariance_matrix[1:2, 1:2] ≈ repr_r_back.covariance_matrix[3:4, 3:4]
         @test repr_r_orig.covariance_matrix[3:4, 3:4] ≈ repr_r_back.covariance_matrix[1:2, 1:2]

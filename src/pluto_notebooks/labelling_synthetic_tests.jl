@@ -94,7 +94,14 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 
 	ForwardStatistics = Float64[]
 	TwoWayStatistics = Float64[]
+	WholesomeStatistics = Float64[]
 	ReprojectionStatistics = Float64[]
+	
+	UniformStatistics = Float64[]
+	uniform_variance = det(apt_noise_m₁) ^ 0.5
+	
+	CovRANSAC = Float64[]
+	
 	TrueLabels = Float64[]
 
 	for _ in 1:n_runs
@@ -131,12 +138,18 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 
 		backward_statistics = RDR.compute_inlier_test_statistic.(backward_residuals)
 		two_way_statistics = max.(forward_statistics, backward_statistics)
+		wholesome_statistics = min.(forward_statistics, backward_statistics)
 
 		reprojection_statistics = RDR.compute_inlier_test_statistic.(reprojection_residuals)
+		
+		d²_statistics = @. RDR.squared_norm(forward_residuals) / uniform_variance
 
 		append!(ForwardStatistics, forward_statistics)
 		append!(TwoWayStatistics, two_way_statistics)
+		append!(WholesomeStatistics, wholesome_statistics)
 		append!(ReprojectionStatistics, reprojection_statistics)
+		append!(UniformStatistics, d²_statistics)
+		
 		
 		predicted_inlier_mask_RDR = two_way_statistics .< T₃
 		for j in 1:(n_corresps-4)
@@ -145,13 +158,12 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 		
 		append!(TrueLabels, @view gt_inlier_mask[non_minimal_set_indices])
 	end
-	return confusion_matrix_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels
-
+	return confusion_matrix_labelling, ForwardStatistics, TwoWayStatistics, WholesomeStatistics, ReprojectionStatistics, UniformStatistics, TrueLabels
 end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
 begin
-	total_runs = 12_000
+	total_runs = 15_000
 
 	point_identity_alpha = 0.01
 	point_identity_st = quantile(RDR._χ²_2_DoF, 1 - point_identity_alpha)
@@ -162,15 +174,16 @@ begin
 	labelling_alpha = 0.01
 	labelling_st = quantile(RDR._χ²_2_DoF, 1 - labelling_alpha)
 
-	conf_m_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels = synthetic_labelling_test(
-		[1.4 -0.7; -0.7 2.4],
-		[2. 1.4; 1.4 1.7],
+	conf_m_labelling, ForwardStatistics, TwoWayStatistics, WholesomeStatistics, ReprojectionStatistics, UniformStatistics, TrueLabels = synthetic_labelling_test(
+		[1.2 -0.6; -0.6 2.5],
+		[1.2 -0.6; -0.6 2.5],
 		point_identity_st,
 		point_line_incidence_st,
 		labelling_st,
 		0.3,
 		1000,
 		total_runs)
+
 	conf_m_labelling_percents = conf_m_labelling
 	for j in 1:2
 		conf_m_labelling_percents[j, :] /= (sum(conf_m_labelling_percents[j, :]) / 100)
@@ -210,17 +223,19 @@ end
 begin
 	cdf_Forward = cdf.(Ref(RDR._χ²_2_DoF), ForwardStatistics)
 	cdf_TwoWay = cdf.(Ref(RDR._χ²_2_DoF), TwoWayStatistics)
+	cdf_Wholesome = cdf.(Ref(RDR._χ²_2_DoF), WholesomeStatistics)
 	cdf_Reprojection = cdf.(Ref(RDR._χ²_4_DoF), ReprojectionStatistics)
+	cdf_Uniform = cdf.(Ref(RDR._χ²_2_DoF), UniformStatistics) 
 
-	roc_figure_path = DATA_PATH * "/" * "ROC_Curves_analysis.png"
-	roc_plots.plot_roc_curves([cdf_Forward, cdf_TwoWay, cdf_Reprojection], ["Forward", "Two Way", "Reprojection"], TrueLabels, roc_figure_path)
+	roc_figure_path = DATA_PATH * "/" * "ROC_Curves_analysis.pdf"
+	roc_plots.plot_roc_curves([cdf_Forward, cdf_TwoWay, cdf_Wholesome, cdf_Reprojection, cdf_Uniform], ["Forward", "Two Way | Max", "Two Way | Min", "Reprojection", "Uniform Thresholding"], TrueLabels, roc_figure_path)
 end
 
 # ╔═╡ Cell order:
 # ╟─b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
 # ╟─17e83446-d245-11ee-376e-2d07bba971c4
 # ╟─b48ceec7-c617-4fc0-8bca-92929faf6c50
-# ╟─169da2fc-586b-4433-abe4-c80781175dbb
+# ╠═169da2fc-586b-4433-abe4-c80781175dbb
 # ╠═26827270-dd23-46f5-a72e-3462d36f65ae
 # ╟─dfb98830-98d4-4876-bdaf-a25fa43bebd4
 # ╟─8fa4826d-885e-43eb-9eb0-6b86b73e5f2f

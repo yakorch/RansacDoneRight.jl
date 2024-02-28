@@ -15,3 +15,17 @@ struct UncertainForwardResidual{T<:Real} <: UncertainResidual{T}
     residual::SVector{2,T}
     covariance_matrix::SMatrix{2,2,T,4}
 end
+
+
+"""
+Returns a certain squared norm of the residual: `||r||²`
+
+For example, used for uniform thresholding.
+"""
+function squared_norm(uncertain_residual::UR) where {UR<:UncertainResidual}
+    return sum((uncertain_residual.residual) .^ 2)
+end
+
+function norm(uncertain_residual::UR) where {UR<:UncertainResidual}
+    return sqrt(squared_norm(uncertain_residual))
+end
