@@ -21,6 +21,7 @@ include("solvers/homography_solvers/uncertain_homography.jl")
 include("solvers/homography_solvers/better_faster_plane_measuring_device.jl")
 
 include("residuals/uncertain_residuals.jl")
+include("residuals/forward_residuals_computation.jl")
 include("residuals/reprojection_residuals_computation.jl")
 
 
@@ -32,6 +33,7 @@ include("hypothesis_testing/consensus_set_labelling.jl")
 include("monte_carlo/reprojection_residuals_covariance_verification.jl")
 
 include("normalizations/spherical_normalization.jl")
+include("normalizations/affine_normalization.jl")
 
 
 include("uncertain_visualizations/uncertain_point_visualization.jl")

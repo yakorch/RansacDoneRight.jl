@@ -15,8 +15,8 @@ function _compute_reprojection_residual!(r_container::MVector{4,T}, H, lu_H::Uni
     # Finds `y` in `H⁻¹ * [v, 1]^T = y`. Because is equivalent to `H * y = [v, 1]^T`.
     H_inv_times_v::SVector{3,T} = lu_H \ to_homogeneous(v)
 
-    r_container[1:2] = to_euclidean(project(H_times_u)) - v
-    r_container[3:4] = to_euclidean(project(H_inv_times_v)) - u
+    r_container[1:2] = v - to_euclidean(project(H_times_u))
+    r_container[3:4] = u - to_euclidean(project(H_inv_times_v))
     return
 end
 
@@ -33,7 +33,7 @@ function _compute_reprojection_residual(H, lu_H::Union{LinearAlgebra.LU,StaticAr
 end
 
 
-function compute_reprojection_residual(H, lu_H::StaticArrays.LU, correspondence::Correspondence{Float64})
+function compute_reprojection_residual(H::MMatrix{3,3,Float64,9}, lu_H::StaticArrays.LU, correspondence::Correspondence{Float64})
     u::SVector{2,Float64} = @view correspondence.p₁.point_coords[1:2]
     v::SVector{2,Float64} = @view correspondence.p₂.point_coords[1:2]
     return _compute_reprojection_residual(H, lu_H, u, v)
@@ -93,19 +93,4 @@ function compute_uncertain_reprojection_residuals(uncertain_H::UncertainHomograp
         uncertain_residuals[i] = UncertainReprojectionResidual(residual, Σᵣ)
     end
     uncertain_residuals
-end
-
-
-
-
-function compute_uncertain_forward_residuals(UncertainHomography::UncertainHomography{Float64}, correspondences::V)::Vector{UncertainForwardResidual{Float64}} where {V<:AbstractVector{Correspondence{Float64}}}
-    @assert length(correspondences) > 0 "No correspondences to compute the residuals for :("
-    uncertain_residuals = Vector{UncertainForwardResidual{Float64}}(undef, length(correspondences))
-
-    Σ = SmallBlockDiagonal(13,
-        uncertain_H.Σₕ,
-        (@view correspondences[1].p₁.covariance_matrix[1:2, 1:2]),
-        (@view correspondences[1].p₂.covariance_matrix[1:2, 1:2])
-    )
-    # TODO: Implement the function
 end

@@ -47,7 +47,7 @@ html"""
 
 # ╔═╡ 169da2fc-586b-4433-abe4-c80781175dbb
 """
-	synthetic_labelling_test(I(2), 2. * I(2), 5.99, 3.84, 9.49, 0.4, 1_000, 100_000)
+	synthetic_labelling_test(I(2), 2. * I(2), 5.99, 3.84, 9.49, 0.4, 1_000, 1_000)
 
 Performs synthetic experiments to verify the viability of probabilistic approach for consensus set labelling and covariance propagation.
 
