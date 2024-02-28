@@ -15,7 +15,7 @@ begin
 	using Statistics
 
 	using PyCall
-	using PyPlot
+	using Distributions
 
 	md"""## Package Imports"""
 end
@@ -151,7 +151,7 @@ end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
 begin
-	total_runs = 3_000
+	total_runs = 15_000
 
 	point_identity_alpha = 0.01
 	point_identity_st = quantile(RDR._χ²_2_DoF, 1 - point_identity_alpha)
@@ -162,7 +162,7 @@ begin
 	labelling_alpha = 0.01
 	labelling_st = quantile(RDR._χ²_2_DoF, 1 - labelling_alpha)
 
-	conf_m_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels = synthetic_labelling_test(3. * I(2), 4. * I(2), point_identity_st, point_line_incidence_st, labelling_st, 0.3, 1000, total_runs)
+	conf_m_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels = synthetic_labelling_test(1. * I(2), 1.5 * I(2), point_identity_st, point_line_incidence_st, labelling_st, 0.3, 1000, total_runs)
 
 	conf_m_labelling_percents = conf_m_labelling
 	for j in 1:2
@@ -201,16 +201,18 @@ end
 
 # ╔═╡ 2fbd1427-231d-4b46-a4fa-6ca410bc13e5
 begin
-	roc_figure_path = DATA_PATH * "/" * "ROC_Curves_analysis.png"
-	roc_plots.plot_roc_curves([ForwardStatistics, TwoWayStatistics, ReprojectionStatistics], ["Forward", "Two Way", "Reprojection"], TrueLabels, roc_figure_path)
+	cdf_Forward = cdf.(Ref(RDR._χ²_2_DoF), ForwardStatistics)
+	cdf_TwoWay = cdf.(Ref(RDR._χ²_2_DoF), TwoWayStatistics)
+	cdf_Reprojection = cdf.(Ref(RDR._χ²_4_DoF), ReprojectionStatistics)
 
-	imshow(imread(roc_figure_path))
+	roc_figure_path = DATA_PATH * "/" * "ROC_Curves_analysis.png"
+	roc_plots.plot_roc_curves([cdf_Forward, cdf_TwoWay, cdf_Reprojection], ["Forward", "Two Way", "Reprojection"], TrueLabels, roc_figure_path)
 end
 
 # ╔═╡ Cell order:
 # ╟─b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
-# ╠═17e83446-d245-11ee-376e-2d07bba971c4
-# ╠═b48ceec7-c617-4fc0-8bca-92929faf6c50
+# ╟─17e83446-d245-11ee-376e-2d07bba971c4
+# ╟─b48ceec7-c617-4fc0-8bca-92929faf6c50
 # ╟─169da2fc-586b-4433-abe4-c80781175dbb
 # ╠═26827270-dd23-46f5-a72e-3462d36f65ae
 # ╟─dfb98830-98d4-4876-bdaf-a25fa43bebd4
