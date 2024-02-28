@@ -4,6 +4,22 @@
 using Markdown
 using InteractiveUtils
 
+# ╔═╡ b48ceec7-c617-4fc0-8bca-92929faf6c50
+begin
+	using Revise
+	using StaticArrays
+	using StatsBase
+	using LinearAlgebra
+	using Combinatorics
+	using Plots
+	using Statistics
+
+	using PyCall
+	using PyPlot
+
+	md"""## Package Imports"""
+end
+
 # ╔═╡ 17e83446-d245-11ee-376e-2d07bba971c4
 begin
     using Pkg
@@ -18,19 +34,6 @@ begin
     md"""
     ### Activating RansacDoneRight environment...
     """
-end
-
-# ╔═╡ b48ceec7-c617-4fc0-8bca-92929faf6c50
-begin
-	using Revise
-	using StaticArrays
-	using StatsBase
-	using LinearAlgebra
-	using Combinatorics
-	using Plots
-	using Statistics
-	
-	md"""## Package Imports"""
 end
 
 # ╔═╡ b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
@@ -85,6 +88,14 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 	apt_noise_m₂ = 1. * noise_m₂
 
 	inlier_indices = (n_outliers+1):n_corresps
+	
+	gt_inlier_mask = trues(n_corresps)
+	gt_inlier_mask[1:n_outliers] .= false
+
+	ForwardStatistics = Float64[]
+	TwoWayStatistics = Float64[]
+	ReprojectionStatistics = Float64[]
+	TrueLabels = Float64[]
 
 	for _ in 1:n_runs
 		certain_minimal_set = RDR.generate_random_minimal_set(image_bounds)
@@ -117,18 +128,25 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 		backward_residuals = RDR.compute_uncertain_forward_residuals(uncertain_homography_inv, @view noised_corresps[non_minimal_set_indices])
 
 		forward_statistics = RDR.compute_inlier_test_statistic.(forward_residuals)
-		backward_statistics = RDR.compute_inlier_test_statistic.(backward_residuals)
-		
-		predicted_inlier_mask_forward = (forward_statistics .< T₃)
-		predicted_inlier_mask_RDR = @. predicted_inlier_mask_forward && (backward_statistics < T₃)
 
-		predicted_inlier_mask_reprojection = RDR.compute_inlier_mask(reprojection_residuals, T₃)
+		backward_statistics = RDR.compute_inlier_test_statistic.(backward_residuals)
+		two_way_statistics = max.(forward_statistics, backward_statistics)
+
+		reprojection_statistics = RDR.compute_inlier_test_statistic.(reprojection_residuals)
+
+		append!(ForwardStatistics, forward_statistics)
+		append!(TwoWayStatistics, two_way_statistics)
+		append!(ReprojectionStatistics, reprojection_statistics)
 		
+		predicted_inlier_mask_RDR = two_way_statistics .< T₃
 		for j in 1:(n_corresps-4)
 			confusion_matrix_labelling[(j > n_outliers) + 1, predicted_inlier_mask_RDR[j] + 1] += 1
 		end
+		
+		append!(TrueLabels, @view gt_inlier_mask[non_minimal_set_indices])
 	end
-	return confusion_matrix_labelling
+	return confusion_matrix_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels
+
 end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
@@ -144,7 +162,7 @@ begin
 	labelling_alpha = 0.01
 	labelling_st = quantile(RDR._χ²_2_DoF, 1 - labelling_alpha)
 
-	conf_m_labelling = synthetic_labelling_test(1. * I(2), 1. * I(2), point_identity_st, point_line_incidence_st, labelling_st, 0.3, 1000, total_runs)
+	conf_m_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels = synthetic_labelling_test(3. * I(2), 4. * I(2), point_identity_st, point_line_incidence_st, labelling_st, 0.3, 1000, total_runs)
 
 	conf_m_labelling_percents = conf_m_labelling
 	for j in 1:2
@@ -169,10 +187,32 @@ ________________________________________________________________________________
 - Empirical power of the test (`1-β`): **$(round(conf_m_labelling_percents[1, 1]; digits=5))** %
 """
 
+# ╔═╡ 8fa4826d-885e-43eb-9eb0-6b86b73e5f2f
+begin
+	py"""
+	import sys
+	sys.path.append('../hypothesis_testing')
+	"""
+	roc_plots = pyimport("roc_analysis")
+	md"""
+	#### Python is set up!
+	"""
+end
+
+# ╔═╡ 2fbd1427-231d-4b46-a4fa-6ca410bc13e5
+begin
+	roc_figure_path = DATA_PATH * "/" * "ROC_Curves_analysis.png"
+	roc_plots.plot_roc_curves([ForwardStatistics, TwoWayStatistics, ReprojectionStatistics], ["Forward", "Two Way", "Reprojection"], TrueLabels, roc_figure_path)
+
+	imshow(imread(roc_figure_path))
+end
+
 # ╔═╡ Cell order:
 # ╟─b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
-# ╟─17e83446-d245-11ee-376e-2d07bba971c4
-# ╟─b48ceec7-c617-4fc0-8bca-92929faf6c50
-# ╠═169da2fc-586b-4433-abe4-c80781175dbb
+# ╠═17e83446-d245-11ee-376e-2d07bba971c4
+# ╠═b48ceec7-c617-4fc0-8bca-92929faf6c50
+# ╟─169da2fc-586b-4433-abe4-c80781175dbb
 # ╠═26827270-dd23-46f5-a72e-3462d36f65ae
 # ╟─dfb98830-98d4-4876-bdaf-a25fa43bebd4
+# ╟─8fa4826d-885e-43eb-9eb0-6b86b73e5f2f
+# ╠═2fbd1427-231d-4b46-a4fa-6ca410bc13e5
