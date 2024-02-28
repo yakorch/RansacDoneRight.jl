@@ -151,7 +151,7 @@ end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
 begin
-	total_runs = 15_000
+	total_runs = 12_000
 
 	point_identity_alpha = 0.01
 	point_identity_st = quantile(RDR._χ²_2_DoF, 1 - point_identity_alpha)
@@ -162,8 +162,15 @@ begin
 	labelling_alpha = 0.01
 	labelling_st = quantile(RDR._χ²_2_DoF, 1 - labelling_alpha)
 
-	conf_m_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels = synthetic_labelling_test(1. * I(2), 1.5 * I(2), point_identity_st, point_line_incidence_st, labelling_st, 0.3, 1000, total_runs)
-
+	conf_m_labelling, ForwardStatistics, TwoWayStatistics, ReprojectionStatistics, TrueLabels = synthetic_labelling_test(
+		[1.4 -0.7; -0.7 2.4],
+		[2. 1.4; 1.4 1.7],
+		point_identity_st,
+		point_line_incidence_st,
+		labelling_st,
+		0.3,
+		1000,
+		total_runs)
 	conf_m_labelling_percents = conf_m_labelling
 	for j in 1:2
 		conf_m_labelling_percents[j, :] /= (sum(conf_m_labelling_percents[j, :]) / 100)
