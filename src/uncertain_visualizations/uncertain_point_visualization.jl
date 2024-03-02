@@ -7,12 +7,13 @@ The last component of `p` is assumed to be constant `1`.
 """
 function plot_confidence_region(p::UncertainPoint{Float64}, confidence_level::Real, existing_plot=nothing)
     χ²_quantile = quantile(_χ²_2_DoF, confidence_level)
+    χ_quantile = sqrt(χ²_quantile)
 
     eigen_decomp = eigen((@view p.covariance_matrix[1:2, 1:2]))
     sqrt_eigenvalues = sqrt.(eigen_decomp.values)
 
     function point_on_ellipse(θ)
-        scaling_vector = χ²_quantile .* sqrt_eigenvalues .* [sin(θ), cos(θ)]
+        scaling_vector = χ_quantile .* sqrt_eigenvalues .* [sin(θ), cos(θ)]
         return (@view p.point_coords[1:2]) + eigen_decomp.vectors * scaling_vector
     end
 

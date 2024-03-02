@@ -68,7 +68,7 @@ function compute_CovRANSAC_labelling_statistics(UH::UncertainHomography{Float64}
     Σ = SmallBlockDiagonal(11, UH.Σₕ)
 
     for (i, corresp) in enumerate(correspondences)
-        Σ[10:11, 10:11] = corresp.p₁.covariance_matrix[1:2, 1:2]
+        Σ[10:11, 10:11] = (@view corresp.p₁.covariance_matrix[1:2, 1:2])
         xₚ = _apply_homography!(UH, corresp.p₁, Σ, J)
         normalize_onto_affine_plane!(xₚ)
 
@@ -77,3 +77,5 @@ function compute_CovRANSAC_labelling_statistics(UH::UncertainHomography{Float64}
     end
     statistics
 end
+
+
