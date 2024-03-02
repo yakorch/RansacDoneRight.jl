@@ -28,7 +28,6 @@ begin
     @assert endswith(pwd(), NOTEBOOKS_PATH) "Wrong directory!"
 	RDR_PATH = "../.."  # path to the RDR project root
     Pkg.activate(RDR_PATH)
-	Pkg.instantiate()
 	
 	import RansacDoneRight as RDR
     md"""
@@ -100,7 +99,7 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 	UniformStatistics = Float64[]
 	uniform_variance = det(apt_noise_m₁) ^ 0.5
 	
-	CovRANSAC = Float64[]
+	CovRANSACStatistics = Float64[]
 	
 	TrueLabels = Float64[]
 
@@ -144,12 +143,15 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 		
 		d²_statistics = @. RDR.squared_norm(forward_residuals) / uniform_variance
 
+		ellipses_tangency_statistics = RDR.compute_CovRANSAC_labelling_statistics(uncertain_homography, @view noised_corresps[non_minimal_set_indices])
+		
+
 		append!(ForwardStatistics, forward_statistics)
 		append!(TwoWayStatistics, two_way_statistics)
 		append!(WholesomeStatistics, wholesome_statistics)
 		append!(ReprojectionStatistics, reprojection_statistics)
 		append!(UniformStatistics, d²_statistics)
-		
+		append!(CovRANSACStatistics, ellipses_tangency_statistics)
 		
 		predicted_inlier_mask_RDR = two_way_statistics .< T₃
 		for j in 1:(n_corresps-4)
@@ -158,12 +160,12 @@ function synthetic_labelling_test(noise_m₁, noise_m₂, T₁::Float64, T₂::F
 		
 		append!(TrueLabels, @view gt_inlier_mask[non_minimal_set_indices])
 	end
-	return confusion_matrix_labelling, ForwardStatistics, TwoWayStatistics, WholesomeStatistics, ReprojectionStatistics, UniformStatistics, TrueLabels
+	return confusion_matrix_labelling, [ForwardStatistics, TwoWayStatistics, WholesomeStatistics, ReprojectionStatistics, UniformStatistics, CovRANSACStatistics], TrueLabels
 end
 
 # ╔═╡ 26827270-dd23-46f5-a72e-3462d36f65ae
 begin
-	total_runs = 15_000
+	total_runs = 2_000
 
 	point_identity_alpha = 0.01
 	point_identity_st = quantile(RDR._χ²_2_DoF, 1 - point_identity_alpha)
@@ -174,15 +176,17 @@ begin
 	labelling_alpha = 0.01
 	labelling_st = quantile(RDR._χ²_2_DoF, 1 - labelling_alpha)
 
-	conf_m_labelling, ForwardStatistics, TwoWayStatistics, WholesomeStatistics, ReprojectionStatistics, UniformStatistics, TrueLabels = synthetic_labelling_test(
-		[1.2 -0.6; -0.6 2.5],
-		[1.2 -0.6; -0.6 2.5],
+	conf_m_labelling, raw_statistics, TrueLabels = synthetic_labelling_test(
+		[1.2 -0.9; -0.9 2.5],
+		[1.8 0.3; 0.3 1.7],
 		point_identity_st,
 		point_line_incidence_st,
 		labelling_st,
 		0.3,
 		1000,
 		total_runs)
+	
+	labels = ["Forward", "Two Way | Max", "Two Way | Min", "Reprojection", "Uniform Thresholding", "Cov-RANSAC"]
 
 	conf_m_labelling_percents = conf_m_labelling
 	for j in 1:2
@@ -221,22 +225,28 @@ end
 
 # ╔═╡ 2fbd1427-231d-4b46-a4fa-6ca410bc13e5
 begin
-	cdf_Forward = cdf.(Ref(RDR._χ²_2_DoF), ForwardStatistics)
-	cdf_TwoWay = cdf.(Ref(RDR._χ²_2_DoF), TwoWayStatistics)
-	cdf_Wholesome = cdf.(Ref(RDR._χ²_2_DoF), WholesomeStatistics)
-	cdf_Reprojection = cdf.(Ref(RDR._χ²_4_DoF), ReprojectionStatistics)
-	cdf_Uniform = cdf.(Ref(RDR._χ²_2_DoF), UniformStatistics) 
+	viable = trues(length(TrueLabels))
+	for stats in raw_statistics
+		viable .&= isfinite.(stats)
+	end
 
+	cleaned_statistics = [stats[viable] for stats in raw_statistics]
+	CleanLabels = TrueLabels[viable]
+	
 	roc_figure_path = DATA_PATH * "/" * "ROC_Curves_analysis.pdf"
-	roc_plots.plot_roc_curves([cdf_Forward, cdf_TwoWay, cdf_Wholesome, cdf_Reprojection, cdf_Uniform], ["Forward", "Two Way | Max", "Two Way | Min", "Reprojection", "Uniform Thresholding"], TrueLabels, roc_figure_path)
+	roc_plots.plot_roc_curves(
+		cleaned_statistics,
+		labels,
+		CleanLabels,
+		roc_figure_path)
 end
 
 # ╔═╡ Cell order:
 # ╟─b59b47e0-3c1e-4298-8bee-c0ec2ecf767c
-# ╟─17e83446-d245-11ee-376e-2d07bba971c4
+# ╠═17e83446-d245-11ee-376e-2d07bba971c4
 # ╟─b48ceec7-c617-4fc0-8bca-92929faf6c50
 # ╠═169da2fc-586b-4433-abe4-c80781175dbb
 # ╠═26827270-dd23-46f5-a72e-3462d36f65ae
 # ╟─dfb98830-98d4-4876-bdaf-a25fa43bebd4
-# ╟─8fa4826d-885e-43eb-9eb0-6b86b73e5f2f
+# ╠═8fa4826d-885e-43eb-9eb0-6b86b73e5f2f
 # ╠═2fbd1427-231d-4b46-a4fa-6ca410bc13e5

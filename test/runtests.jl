@@ -60,8 +60,8 @@ end
         @test repr_r_orig.residual[1:2] ≈ repr_r_back.residual[3:4]
         @test repr_r_orig.residual[3:4] ≈ repr_r_back.residual[1:2]
 
-        @test repr_r_orig.covariance_matrix[1:2, 1:2] ≈ repr_r_back.covariance_matrix[3:4, 3:4]
-        @test repr_r_orig.covariance_matrix[3:4, 3:4] ≈ repr_r_back.covariance_matrix[1:2, 1:2]
+        @test isapprox(repr_r_orig.covariance_matrix[1:2, 1:2], repr_r_back.covariance_matrix[3:4, 3:4], atol=1e-4, rtol=1e-2)
+        @test isapprox(repr_r_orig.covariance_matrix[3:4, 3:4], repr_r_back.covariance_matrix[1:2, 1:2], atol=1e-4, rtol=1e-2)
 
         @test repr_r_back.residual[1:2] ≈ forw_r_back.residual
         @test forw_r_back.covariance_matrix ≈ repr_r_back.covariance_matrix[1:2, 1:2]

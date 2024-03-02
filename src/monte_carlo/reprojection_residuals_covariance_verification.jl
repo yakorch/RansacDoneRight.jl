@@ -51,7 +51,7 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
     errors = Array{Float64}(undef, num_residuals)
     for i in 1:num_residuals
         monte_cov_m = sum((thread_covariances[t][i] for t in 1:num_threads)) ./ run_each_corresp
-        errors[i] = norm(monte_cov_m - propagated_covs[i]) / norm(monte_cov_m)
+        errors[i] = LinearAlgebra.norm(monte_cov_m - propagated_covs[i]) / LinearAlgebra.norm(monte_cov_m)
 
         if verbose
             println("===")

@@ -12,7 +12,6 @@ begin
     @assert endswith(pwd(), NOTEBOOKS_PATH) "Wrong directory!"
     RDR_PATH = "../.."  # path to the RDR project root
     Pkg.activate(RDR_PATH)
-    Pkg.instantiate()
 
     import RansacDoneRight as RDR
     md"""
