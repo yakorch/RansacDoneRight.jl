@@ -69,11 +69,7 @@ function compute_uncertain_reprojection_residuals(uncertain_H::UncertainHomograp
 
     arguments_vector::MVector{13,Float64} = [vec(uncertain_H.H)..., 0.0, 0.0, 0.0, 0.0]
 
-    Σ = SmallBlockDiagonal(13,
-        uncertain_H.Σₕ,
-        (@view correspondences[1].p₁.covariance_matrix[1:2, 1:2]),
-        (@view correspondences[1].p₂.covariance_matrix[1:2, 1:2])
-    )
+    Σ = SmallBlockDiagonal(13, uncertain_H.Σₕ)
 
     for (i, corresp) in enumerate(correspondences)
         arguments_vector[10:11] = @view corresp.p₁.point_coords[1:2]

@@ -34,7 +34,7 @@ function compute_uncertain_forward_residuals(UncertainHomography::UncertainHomog
         p₂ = corresp.p₂
 
         Σₓ[10:11, 10:11] = @view p₁.covariance_matrix[1:2, 1:2]
-        
+
         xₚ = _apply_homography!(UncertainHomography, p₁, Σₓ, J)
         normalize_onto_affine_plane!(xₚ)
 
@@ -43,7 +43,7 @@ function compute_uncertain_forward_residuals(UncertainHomography::UncertainHomog
         v̂::MVector{2,Float64} = @view xₚ.point_coords[1:2]
         r = _compute_forward_residual(v, v̂)
 
-        Σᵣ::SMatrix{2, 2, Float64, 4} = (@view p₂.covariance_matrix[1:2, 1:2]) + (@view xₚ.covariance_matrix[1:2, 1:2])
+        Σᵣ::SMatrix{2,2,Float64,4} = (@view p₂.covariance_matrix[1:2, 1:2]) + (@view xₚ.covariance_matrix[1:2, 1:2])
         uncertain_forward_residuals[i] = UncertainForwardResidual(r, Σᵣ)
     end
     return uncertain_forward_residuals
