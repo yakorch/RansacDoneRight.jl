@@ -13,7 +13,6 @@ One may use `Distributions.quantile(_χ²_k_DoF, confidence_level)` to get the t
 function compute_inlier_test_statistic(uncertain_residual::UncertainResidual{Float64})::Float64
     r = uncertain_residual.residual
 
-    # TODO: benchmark inverse vs. LU decomposition
     mahalanobis_dist = r' * (lu(uncertain_residual.covariance_matrix) \ r)
     @assert isfinite(mahalanobis_dist) "Mahalanobis distance is not finite. Got: $mahalanobis_dist. Residual: $r. Covariance: $(uncertain_residual.covariance_matrix)."
 

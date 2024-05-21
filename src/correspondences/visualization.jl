@@ -1,3 +1,5 @@
+using Plots
+
 """
 Plots 2-view 2D scene.
 

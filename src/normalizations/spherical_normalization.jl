@@ -25,6 +25,11 @@ function normalize_onto_unit_sphere(v::V, covariance_matrix::M) where {V<:Abstra
 end
 
 
+function normalize_onto_unit_sphere(matrix::M) where {M<:AbstractMatrix{<:Real}}
+    return matrix / LinearAlgebra.norm(matrix)
+end
+
+
 function normalize_onto_unit_sphere(matrix::M₁, covariance_matrix::M₂) where {M₁<:AbstractMatrix{<:Real},M₂<:AbstractMatrix{<:Real}}
     v = vec(matrix)
     normalized_v, Σₛ = normalize_onto_unit_sphere(v, covariance_matrix)

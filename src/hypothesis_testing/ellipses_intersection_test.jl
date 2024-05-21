@@ -58,7 +58,6 @@ function compute_CovRANSAC_labelling_statistic(p::UncertainPoint{Float64}, p̂::
 end
 
 
-
 function compute_CovRANSAC_labelling_statistics(UH::UncertainHomography{Float64}, correspondences::V) where {V<:AbstractVector{Correspondence{Float64}}}
     statistics = Vector{Float64}(undef, length(correspondences))
 

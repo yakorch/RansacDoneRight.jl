@@ -176,7 +176,6 @@ function add_noise(correspondences::V, noise_m_1::M, noise_m_2::M, actually_add_
             UncertainPoint(MVector(noised_p_2..., 1), noise_hom_m_2)
         )
     end
-
     noised_correspondences
 end
 

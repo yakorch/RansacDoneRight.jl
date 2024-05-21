@@ -28,7 +28,9 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
     num_threads = Threads.nthreads()
     thread_covariances = [Matrix{Float64}[zeros(4, 4) for _ in 1:num_residuals] for _ in 1:num_threads]
 
-    Threads.@threads for _ in 1:run_each_corresp
+    first_two_residuals = Vector{Vector{Float64}}(undef, run_each_corresp)
+
+    Threads.@threads for k in 1:run_each_corresp
         noised_correspondences = add_noise(truth_correspondences, noise_matrix, noise_matrix, true)
         min_set::MVector{4,Correspondence{Float64}} = @view noised_correspondences[1:4]
         H = compute_homography(min_set)
@@ -38,6 +40,10 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
 
         for j in 1:num_residuals
             residual = compute_reprojection_residual(H, lu_H, noised_correspondences[j+4])
+
+            if j == 1
+                first_two_residuals[k] = residual[1:2]
+            end
 
             covariances[j] += residual * residual'
 
@@ -50,8 +56,8 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
 
     errors = Array{Float64}(undef, num_residuals)
     for i in 1:num_residuals
-        monte_cov_m = sum((thread_covariances[t][i] for t in 1:num_threads)) ./ run_each_corresp
-        errors[i] = LinearAlgebra.norm(monte_cov_m - propagated_covs[i]) / LinearAlgebra.norm(monte_cov_m)
+        monte_cov_m = (sum((thread_covariances[t][i] for t in 1:num_threads))./run_each_corresp)[1:2, 1:2]
+        errors[i] = LinearAlgebra.norm(monte_cov_m - propagated_covs[i][1:2, 1:2]) / LinearAlgebra.norm(monte_cov_m)
 
         if verbose
             println("===")
@@ -63,9 +69,8 @@ function monte_carlo_cov_residuals(truth_correspondences::V, run_each_corresp::I
             println("===")
         end
     end
-    errors
+    errors, first_two_residuals
 end
-
 
 
 """
