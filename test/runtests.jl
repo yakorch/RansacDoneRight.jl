@@ -81,7 +81,7 @@ end
         verify_no_points_are_collinear(min_set, 15.0, 10.0, false) && break
         correspondences = generate_k_random_correspondences(num_corresponodences, H)
     end
-    errors = monte_carlo_cov_residuals(correspondences, runs, noise_matrix, false)
+    errors, _ = monte_carlo_cov_residuals(correspondences, runs, noise_matrix, false)
     @test median(errors) < 0.05
 end
 
